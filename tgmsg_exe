@@ -1,0 +1,36 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Net;
+
+namespace SendMsg2Telegram
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            if (args.Length == 0)
+            {
+                Console.WriteLine("Please enter a arguments.");
+                System.Environment.Exit(1);
+            }
+        
+            string botID = args[0];
+            string chatID = args[1];
+            string msg = args[2];
+            string link = String.Format("https://api.telegram.org/bot{0}/sendMessage?chat_id={1}&text={2}", botID, chatID, msg);
+
+            WebRequest request = WebRequest.Create(link);
+                    
+            // If required by the server, set the credentials.
+            request.Credentials = CredentialCache.DefaultCredentials;
+            
+            WebResponse response = request.GetResponse();
+            Console.WriteLine(((HttpWebResponse)response).StatusDescription);            
+
+        }
+        
+    }
+}

@@ -1,0 +1,28 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Net;
+
+
+namespace TgMsg
+{
+    public class TgMsg
+    {
+        static public string SendMsg(string botID, string chatID, string msg)
+        {
+            string link = String.Format("https://api.telegram.org/bot{0}/sendMessage?chat_id={1}&text={2}", botID, chatID, msg);
+
+            ServicePointManager.SecurityProtocol = (SecurityProtocolType)3072;
+            WebRequest request = WebRequest.Create(link);
+
+            // If required by the server, set the credentials.
+            request.Credentials = CredentialCache.DefaultCredentials;
+
+            WebResponse response = request.GetResponse();
+            return ((HttpWebResponse)response).StatusDescription;
+
+        }
+    }
+}
