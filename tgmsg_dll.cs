@@ -97,7 +97,7 @@ namespace TgMsg
                 // Step 2: Wrap socket in SSL
                 netStream = new NetworkStream(socket, true);
                 sslStream = new SslStream(netStream, false);
-                sslStream.AuthenticateAsClient(TelegramApiHost);
+                sslStream.AuthenticateAsClient(TelegramApiHost, null, System.Security.Authentication.SslProtocols.Tls12, false);
 
                 // Step 3: Send HTTP request and read response over SSL tunnel
                 return HttpGetOverStream(sslStream, TelegramApiHost, path);
