@@ -13,14 +13,20 @@ namespace TgMsg
         private const int TelegramApiPort = 443;
         private const int TimeoutMs = 30000;
 
-        // Backward-compatible: no proxy
+        // Without proxy (backward-compatible)
         static public string SendMsg(string botID, string chatID, string msg)
         {
-            return SendMsg(botID, chatID, msg, null);
+            string escapedMsg = Uri.EscapeDataString(msg);
+            string escapedChatID = Uri.EscapeDataString(chatID);
+            string fullUrl = String.Format("https://{0}/bot{1}/sendMessage?chat_id={2}&text={3}",
+                TelegramApiHost, botID, escapedChatID, escapedMsg);
+
+            ServicePointManager.SecurityProtocol |= (SecurityProtocolType)3072;
+            return SendDirect(fullUrl);
         }
 
-        // New: with proxy support
-        static public string SendMsg(string botID, string chatID, string msg, string proxyUrl)
+        // With proxy support (separate name for SQL Server CLR compatibility)
+        static public string SendMsgProxy(string botID, string chatID, string msg, string proxyUrl)
         {
             string escapedMsg = Uri.EscapeDataString(msg);
             string escapedChatID = Uri.EscapeDataString(chatID);

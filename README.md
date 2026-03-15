@@ -15,8 +15,8 @@
 string result = TgMsg.TgMsg.SendMsg(botID, chatID, msg);
 
 // С прокси
-string result = TgMsg.TgMsg.SendMsg(botID, chatID, msg, "socks5://user:pass@host:1080");
-string result = TgMsg.TgMsg.SendMsg(botID, chatID, msg, "http://proxy:8080");
+string result = TgMsg.TgMsg.SendMsgProxy(botID, chatID, msg, "socks5://user:pass@host:1080");
+string result = TgMsg.TgMsg.SendMsgProxy(botID, chatID, msg, "http://proxy:8080");
 ```
 
 ### Сборка
@@ -40,7 +40,7 @@ AS EXTERNAL NAME TgMsg.[TgMsg.TgMsg].SendMsg;
 CREATE FUNCTION dbo.SendTgMsgProxy(@botID NVARCHAR(200), @chatID NVARCHAR(50),
     @msg NVARCHAR(MAX), @proxyUrl NVARCHAR(500))
 RETURNS NVARCHAR(200)
-AS EXTERNAL NAME TgMsg.[TgMsg.TgMsg].SendMsg;
+AS EXTERNAL NAME TgMsg.[TgMsg.TgMsg].SendMsgProxy;
 ```
 
 `PERMISSION_SET = UNSAFE` требуется для SOCKS5 (raw sockets). Для HTTP-прокси достаточно `EXTERNAL_ACCESS`.

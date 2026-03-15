@@ -32,9 +32,11 @@ GOOS=windows GOARCH=amd64 go build -o tgmsg.exe      # Windows
 
 ### .NET DLL
 
-Single file `tgmsg_dll.cs`. Public API: `TgMsg.TgMsg.SendMsg(botID, chatID, msg [, proxyUrl])`.
+Single file `tgmsg_dll.cs`. Public API (no overloads — SQL Server CLR restriction):
+- `TgMsg.TgMsg.SendMsg(botID, chatID, msg)` — without proxy
+- `TgMsg.TgMsg.SendMsgProxy(botID, chatID, msg, proxyUrl)` — with proxy
 
-Proxy routing: `ParseProxyUrl()` → dispatch by scheme → `SendDirect()` / `SendViaHttpProxy()` (WebProxy) / `SendViaSocks5()` (raw socket → SslStream → manual HTTP GET).
+Proxy routing in `SendMsgProxy`: `ParseProxyUrl()` → dispatch by scheme → `SendDirect()` / `SendViaHttpProxy()` (WebProxy) / `SendViaSocks5()` (raw socket → SslStream → manual HTTP GET).
 
 SOCKS5 flow: `Socks5Connect()` opens TCP to proxy, performs RFC 1928 handshake (greeting → auth → CONNECT), returns tunneled socket. Then wraps in `SslStream.AuthenticateAsClient()`, sends raw HTTP/1.1 GET via `HttpGetOverStream()`.
 
@@ -48,8 +50,8 @@ Single `go/main.go`. Flag `--proxy` > env `TGMSG_PROXY` > direct. `buildTranspor
 
 ### .NET DLL (from C# / SQL Server)
 ```csharp
-TgMsg.TgMsg.SendMsg(botID, chatID, msg);                    // без прокси
-TgMsg.TgMsg.SendMsg(botID, chatID, msg, "socks5://h:1080"); // с прокси
+TgMsg.TgMsg.SendMsg(botID, chatID, msg);                         // без прокси
+TgMsg.TgMsg.SendMsgProxy(botID, chatID, msg, "socks5://h:1080"); // с прокси
 ```
 
 ### Go CLI
