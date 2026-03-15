@@ -1,10 +1,53 @@
 # TgMsg
 
-CLI-утилита для отправки сообщений через Telegram Bot API с поддержкой прокси (SOCKS5, HTTP/HTTPS).
+Отправка сообщений через Telegram Bot API с поддержкой прокси (SOCKS5, HTTP/HTTPS).
 
-Компилируется в один статический бинарник без зависимостей. Кросс-компиляция из Linux в Windows .exe одной командой.
+Два варианта использования:
+- **.NET DLL** — для SQL Server CLR Assembly (stored procedure)
+- **Go CLI** — standalone бинарник для Linux/Windows
 
-## Использование
+## .NET DLL (SQL Server CLR)
+
+### API
+
+```csharp
+// Без прокси (обратная совместимость)
+string result = TgMsg.TgMsg.SendMsg(botID, chatID, msg);
+
+// С прокси
+string result = TgMsg.TgMsg.SendMsg(botID, chatID, msg, "socks5://user:pass@host:1080");
+string result = TgMsg.TgMsg.SendMsg(botID, chatID, msg, "http://proxy:8080");
+```
+
+### Сборка
+
+```bash
+mcs -target:library -out:TgMsg.dll tgmsg_dll.cs
+```
+
+### Регистрация в SQL Server
+
+```sql
+CREATE ASSEMBLY TgMsg FROM 'C:\path\to\TgMsg.dll'
+WITH PERMISSION_SET = UNSAFE;
+
+-- Функция без прокси
+CREATE FUNCTION dbo.SendTgMsg(@botID NVARCHAR(200), @chatID NVARCHAR(50), @msg NVARCHAR(MAX))
+RETURNS NVARCHAR(200)
+AS EXTERNAL NAME TgMsg.[TgMsg.TgMsg].SendMsg;
+
+-- Функция с прокси
+CREATE FUNCTION dbo.SendTgMsgProxy(@botID NVARCHAR(200), @chatID NVARCHAR(50),
+    @msg NVARCHAR(MAX), @proxyUrl NVARCHAR(500))
+RETURNS NVARCHAR(200)
+AS EXTERNAL NAME TgMsg.[TgMsg.TgMsg].SendMsg;
+```
+
+`PERMISSION_SET = UNSAFE` требуется для SOCKS5 (raw sockets). Для HTTP-прокси достаточно `EXTERNAL_ACCESS`.
+
+## Go CLI
+
+### Использование
 
 ```bash
 tgmsg [--proxy URL] <bot_token> <chat_id> <message>
@@ -27,20 +70,9 @@ export TGMSG_PROXY=socks5://host:1080
 ./tgmsg 123456:ABC-DEF 987654321 "Привет"
 ```
 
-### Конфигурация прокси
+Прокси задаётся двумя способами (флаг `--proxy` приоритетнее переменной `TGMSG_PROXY`).
 
-Прокси задаётся двумя способами (флаг приоритетнее):
-
-| Способ | Пример |
-|---|---|
-| Флаг `--proxy` | `--proxy socks5://user:pass@host:1080` |
-| Переменная `TGMSG_PROXY` | `TGMSG_PROXY=http://proxy:8080` |
-
-Поддерживаемые схемы: `socks5`, `http`, `https`.
-
-## Сборка
-
-Требуется Go 1.23+.
+### Сборка
 
 ```bash
 cd go/
@@ -53,3 +85,11 @@ GOOS=windows GOARCH=amd64 go build -o tgmsg.exe
 ```
 
 Полученный `tgmsg.exe` можно перенести на Windows и запустить — никаких зависимостей не требуется.
+
+## Поддерживаемые прокси
+
+| Схема | Пример | Описание |
+|---|---|---|
+| `socks5` | `socks5://user:pass@host:1080` | SOCKS5 с опциональной аутентификацией |
+| `http` | `http://proxy:8080` | HTTP-прокси |
+| `https` | `https://proxy:443` | HTTPS-прокси |
