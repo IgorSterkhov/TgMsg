@@ -19,9 +19,9 @@ CREATE OR ALTER       PROCEDURE [bot].[sendMsg_toNBCRbt](
 AS
 --EXEC [bot].[sendMsg_toNBCRbt] 'test test', 1
 
---параметры
-DECLARE @botName nvarchar(512) = N'_bot'
-DECLARE @chatName nvarchar(512) = '_Log'
+--пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
+DECLARE @botName nvarchar(512) = N'my_bot'
+DECLARE @chatName nvarchar(512) = 'my_chat'
 --
 
 EXEC bot.sendMsg @botName, @chatName, @msg, @isErr
