@@ -16,10 +16,8 @@ namespace TgMsg
         // Without proxy (backward-compatible)
         static public string SendMsg(string botID, string chatID, string msg)
         {
-            string escapedMsg = Uri.EscapeDataString(msg);
-            string escapedChatID = Uri.EscapeDataString(chatID);
             string fullUrl = String.Format("https://{0}/bot{1}/sendMessage?chat_id={2}&text={3}",
-                TelegramApiHost, botID, escapedChatID, escapedMsg);
+                TelegramApiHost, botID, chatID, msg);
 
             ServicePointManager.SecurityProtocol |= (SecurityProtocolType)3072;
             return SendDirect(fullUrl);
@@ -28,15 +26,12 @@ namespace TgMsg
         // With proxy support (separate name for SQL Server CLR compatibility)
         static public string SendMsgProxy(string botID, string chatID, string msg, string proxyUrl)
         {
-            string escapedMsg = Uri.EscapeDataString(msg);
-            string escapedChatID = Uri.EscapeDataString(chatID);
-            string path = String.Format("/bot{0}/sendMessage?chat_id={1}&text={2}", botID, escapedChatID, escapedMsg);
-            string fullUrl = "https://" + TelegramApiHost + path;
-
             ServicePointManager.SecurityProtocol |= (SecurityProtocolType)3072;
 
             if (String.IsNullOrEmpty(proxyUrl))
             {
+                string fullUrl = String.Format("https://{0}/bot{1}/sendMessage?chat_id={2}&text={3}",
+                    TelegramApiHost, botID, chatID, msg);
                 return SendDirect(fullUrl);
             }
 
@@ -46,9 +41,11 @@ namespace TgMsg
             {
                 case "http":
                 case "https":
-                    return SendViaHttpProxy(fullUrl, proxy);
+                    string httpUrl = String.Format("https://{0}/bot{1}/sendMessage?chat_id={2}&text={3}",
+                        TelegramApiHost, botID, chatID, msg);
+                    return SendViaHttpProxy(httpUrl, proxy);
                 case "socks5":
-                    return SendViaSocks5(path, proxy);
+                    return SendViaSocks5(botID, chatID, msg, proxy);
                 default:
                     throw new ArgumentException("Unsupported proxy scheme: " + proxy.Scheme + ". Use socks5, http, or https.");
             }
@@ -83,7 +80,7 @@ namespace TgMsg
         }
 
         // SOCKS5 proxy: manual implementation (RFC 1928 + RFC 1929)
-        private static string SendViaSocks5(string path, ProxyConfig proxy)
+        private static string SendViaSocks5(string botID, string chatID, string msg, ProxyConfig proxy)
         {
             Socket socket = null;
             NetworkStream netStream = null;
@@ -99,8 +96,10 @@ namespace TgMsg
                 sslStream = new SslStream(netStream, false);
                 sslStream.AuthenticateAsClient(TelegramApiHost, null, System.Security.Authentication.SslProtocols.Tls12, false);
 
-                // Step 3: Send HTTP request and read response over SSL tunnel
-                return HttpGetOverStream(sslStream, TelegramApiHost, path);
+                // Step 3: Send HTTP POST with form-encoded body over SSL tunnel
+                string apiPath = "/bot" + botID + "/sendMessage";
+                string body = "chat_id=" + Uri.EscapeDataString(chatID) + "&text=" + Uri.EscapeDataString(msg);
+                return HttpPostOverStream(sslStream, TelegramApiHost, apiPath, body);
             }
             finally
             {
@@ -233,15 +232,17 @@ namespace TgMsg
                 throw new IOException("SOCKS5: authentication failed");
         }
 
-        // Send HTTP GET over a stream and return status description
-        private static string HttpGetOverStream(Stream stream, string host, string path)
+        // Send HTTP POST over a stream and return status description
+        private static string HttpPostOverStream(Stream stream, string host, string path, string body)
         {
+            byte[] bodyBytes = Encoding.UTF8.GetBytes(body);
             string request = String.Format(
-                "GET {0} HTTP/1.1\r\nHost: {1}\r\nConnection: close\r\n\r\n",
-                path, host);
+                "POST {0} HTTP/1.1\r\nHost: {1}\r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: {2}\r\nConnection: close\r\n\r\n",
+                path, host, bodyBytes.Length);
 
             byte[] requestBytes = Encoding.UTF8.GetBytes(request);
             stream.Write(requestBytes, 0, requestBytes.Length);
+            stream.Write(bodyBytes, 0, bodyBytes.Length);
             stream.Flush();
 
             // Read response
