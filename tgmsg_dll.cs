@@ -98,7 +98,7 @@ namespace TgMsg
 
                 // Step 3: Send HTTP POST with form-encoded body over SSL tunnel
                 string apiPath = "/bot" + botID + "/sendMessage";
-                string body = "chat_id=" + Uri.EscapeDataString(chatID) + "&text=" + Uri.EscapeDataString(msg);
+                string body = "chat_id=" + FormEncode(chatID) + "&text=" + FormEncode(msg);
                 return HttpPostOverStream(sslStream, TelegramApiHost, apiPath, body);
             }
             finally
@@ -316,6 +316,12 @@ namespace TgMsg
             }
 
             return config;
+        }
+
+        // Form-encode a value (spaces as +, special chars as %XX)
+        private static string FormEncode(string value)
+        {
+            return Uri.EscapeDataString(value).Replace("%20", "+");
         }
 
         // Map SOCKS5 REP codes to error messages
